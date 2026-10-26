@@ -70,7 +70,7 @@ Run a policy-match and NAT-match test for every critical flow on the staged targ
 | -------- | ------------------------------------------------------------- | ----------------------------------------- |
 | PAN-OS   | `test security-policy-match from <z> to <z> source <ip> destination <ip> protocol 6 destination-port <p>` | `test nat-policy-match ...`               |
 | ASA/FTD  | `packet-tracer input <if> tcp <src> <sport> <dst> <dport> detailed` | (included in packet-tracer)          |
-| FortiOS  | `diagnose firewall iprope lookup <src> <sport> <dst> <dport> tcp <srcintf>` | `diagnose firewall vip list`     |
+| FortiOS  | `diagnose firewall iprope lookup <src> <sport> <dst> <dport> tcp <srcintf>` | `show firewall vip <name>`       |
 | Junos    | `show security match-policies from-zone <z> to-zone <z> source-ip <ip> destination-ip <ip> destination-port <p> protocol tcp` | `show security nat ... rule all` |
 
 Flow test table:

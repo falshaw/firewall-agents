@@ -14,7 +14,7 @@ Read `00-methodology.md` first. Agents: `paloalto-expert` (source), `fortinet-ex
 ## Export
 
 - Panorama: export device-group pre/post rules and shared objects (XML API `show` or `config` export) — remember the effective rulebase is **shared pre → DG pre → local → DG post → shared post**
-- Firewall: `show config running` (XML) or `set cli config-output-format set` then `show config running`
+- Firewall: `show config running` (XML), or `set cli config-output-format set` in operational mode, then `configure` and `show` for set-format output
 
 ## Object Mapping
 
@@ -68,7 +68,7 @@ Name length: PAN-OS allows 63 characters, FortiOS address names up to 79 — usu
 | Source dynamic-ip                        | `firewall ippool type one-to-one` or fixed-port-range |
 | Source static, bi-directional            | VIP (static NAT) + `set nat-source-vip enable`   |
 | Destination translation (+ port)         | VIP with `portforward enable`                    |
-| U-turn NAT                               | Internal-to-internal policy using the VIP        |
+| U-turn NAT                               | VIP with `extintf any` + internal-to-internal policy using the VIP |
 | No-NAT rule above broader rule           | Policy with `set nat disable` placed above        |
 
 **Address semantics:** PAN-OS inbound security rules use the **public** address with the **post-NAT zone**. FortiOS (policy-based NAT) inbound policies use the **VIP object** as `dstaddr` with `dstintf` = interface/zone of the real server. In central NAT mode, use the real server address.
@@ -94,7 +94,7 @@ Name length: PAN-OS allows 63 characters, FortiOS address names up to 79 — usu
 | Purpose | PAN-OS (source)                      | FortiOS (target)                                  |
 | ------- | ------------------------------------ | ------------------------------------------------- |
 | Policy  | `test security-policy-match ...`     | `diagnose firewall iprope lookup ...`             |
-| NAT     | `test nat-policy-match ...`          | `diagnose firewall vip list`, session list        |
+| NAT     | `test nat-policy-match ...`          | `show firewall vip`, session list        |
 | App     | `show session id <id>` (application) | Session list (`app_list`), FortiView Applications |
 | VPN     | `show vpn ipsec-sa`                  | `diagnose vpn tunnel list`                        |
 

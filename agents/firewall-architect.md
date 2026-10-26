@@ -101,7 +101,7 @@ Playbooks: `playbooks/00-methodology.md`, `playbooks/cutover-and-rollback.md`, `
 | Check       | PAN-OS                         | Cisco ASA        | FortiOS                               | Junos SRX                                   |
 | ----------- | ------------------------------ | ---------------- | ------------------------------------- | ------------------------------------------- |
 | Policy test | `test security-policy-match`   | `packet-tracer`  | `diagnose firewall iprope lookup`     | `show security match-policies`              |
-| NAT test    | `test nat-policy-match`        | `packet-tracer` / `show nat detail` | `diagnose firewall vip list` | `show security nat ... rule all`      |
+| NAT test    | `test nat-policy-match`        | `packet-tracer` / `show nat detail` | `show firewall vip` + `diagnose sys session list` | `show security nat ... rule all`      |
 | Sessions    | `show session all`             | `show conn`      | `diagnose sys session list`           | `show security flow session`                |
 | Routing     | `show routing route`           | `show route`     | `get router info routing-table all`   | `show route`                                |
 | Packet path | `debug dataplane packet-diag`  | `capture ... type asp-drop` | `diagnose debug flow`       | `security flow traceoptions`                |

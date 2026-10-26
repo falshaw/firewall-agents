@@ -172,10 +172,14 @@ Policy → Process → Organization → Tools
 
 | Level              | Description                          |
 | ------------------ | ------------------------------------ |
-| **Conformant**     | Fully compliant with architecture    |
-| **Compliant**      | Meets intent, minor deviations       |
-| **Non-Conformant** | Significant deviations, needs review |
-| **Dispensation**   | Temporary exception granted          |
+| **Irrelevant**       | No features in common with the architecture specification |
+| **Consistent**       | Some features implemented in line with the specification |
+| **Compliant**        | All implemented features are covered by the specification (not all of it is implemented) |
+| **Conformant**       | All specified features implemented, plus some features outside the specification |
+| **Fully Conformant** | Full correspondence between specification and implementation |
+| **Non-conformant**   | Some features implemented not in line with the specification |
+
+A **dispensation** is not a compliance level: the Architecture Board grants it for a set time and set of services when an implementation cannot comply, with a plan to realign later.
 
 ---
 

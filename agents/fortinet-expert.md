@@ -51,6 +51,9 @@ config firewall address
     edit "NET-APP-10.20.0.0"
         set subnet 10.20.0.0 255.255.255.0
     next
+    edit "NET-USERS-10.30.0.0"
+        set subnet 10.30.0.0 255.255.255.0
+    next
 end
 
 config firewall addrgrp
@@ -110,7 +113,7 @@ get router info routing-table all
 diagnose firewall iprope lookup 10.20.0.10 40000 198.51.100.20 443 tcp internal
 diagnose sys session filter dst 198.51.100.20
 diagnose sys session list
-diagnose firewall vip list
+show firewall vip VIP-WEB-01
 diagnose sniffer packet any "host 10.20.0.10 and port 443" 4 20
 ```
 
@@ -162,7 +165,12 @@ config system sdwan
             set src "all"
             set internet-service enable
             set internet-service-name "Microsoft-Office365"
-            set health-check "SLA-INTERNET"
+            set mode sla
+            config sla
+                edit "SLA-INTERNET"
+                    set id 1
+                next
+            end
             set priority-members 1 2
         next
     end

@@ -47,8 +47,12 @@ object network SRV-WEB-01
  host 10.20.0.10
 object network SRV-WEB-01-PUBLIC
  host 203.0.113.10
+object network NET-REMOTE-10.40.0.0
+ subnet 10.40.0.0 255.255.255.0
 object-group network GRP-INTERNAL
  network-object object NET-APP-10.20.0.0
+object-group network GRP-REMOTE
+ network-object object NET-REMOTE-10.40.0.0
 access-list OUTSIDE_IN extended permit tcp any object SRV-WEB-01 eq https
 access-group OUTSIDE_IN in interface outside
 ! write memory   ! OPERATOR EXECUTES
@@ -59,13 +63,13 @@ Note: since ASA 8.3, ACLs reference the **real (untranslated)** IP — `SRV-WEB-
 ### NAT (8.3+)
 
 ```
-! Object (auto) NAT — section 2
-object network SRV-WEB-01
- nat (dmz,outside) static SRV-WEB-01-PUBLIC
-! Twice (manual) NAT — section 1, evaluated first
-nat (inside,outside) source dynamic GRP-INTERNAL interface
-! NAT exemption for VPN
+! Twice (manual) NAT — section 1, evaluated first: NAT exemption for VPN
 nat (inside,outside) source static GRP-INTERNAL GRP-INTERNAL destination static GRP-REMOTE GRP-REMOTE no-proxy-arp route-lookup
+! Object (auto) NAT — section 2: static for the web server (inside subnet)
+object network SRV-WEB-01
+ nat (inside,outside) static SRV-WEB-01-PUBLIC
+! Twice NAT after-auto — section 3, evaluated last: PAT for everything else
+nat (inside,outside) after-auto source dynamic GRP-INTERNAL interface
 ```
 
 NAT order: section 1 (twice NAT, in config order) → section 2 (object NAT: static before dynamic, then longest prefix) → section 3 (`after-auto` twice NAT).

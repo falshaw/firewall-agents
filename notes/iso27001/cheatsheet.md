@@ -54,7 +54,7 @@
 | 9.1    | Monitoring & Measurement Results     |
 | 9.2    | Internal Audit Program & Results     |
 | 9.3    | Management Review Results            |
-| 10.1   | Nonconformities & Corrective Actions |
+| 10.2   | Nonconformities & Corrective Actions |
 
 ---
 

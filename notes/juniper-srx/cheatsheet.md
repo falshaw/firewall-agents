@@ -82,9 +82,9 @@ set interfaces lo0 unit 0 family inet address 10.255.0.1/32
 ```
 set chassis aggregated-devices ethernet device-count 2
 set interfaces ae0 aggregated-ether-options lacp active
-set interfaces xe-0/0/0 ether-options 802.3ad ae0
-set interfaces xe-0/0/1 ether-options 802.3ad ae0
-set interfaces ae0 unit 0 family inet address 10.0.0.1/24
+set interfaces xe-0/0/4 gigether-options 802.3ad ae0
+set interfaces xe-0/0/5 gigether-options 802.3ad ae0
+set interfaces ae0 unit 0 family inet address 10.3.0.1/24
 ```
 
 ---
@@ -139,17 +139,17 @@ set security policies from-zone trust to-zone untrust policy deny-rest then deny
 set security policies from-zone trust to-zone untrust policy deny-rest then log session-init
 ```
 
-### Address Book (per-zone in SRX)
+### Address Book (global)
 
 ```
-set security zones security-zone trust address-book address web-srv 10.1.1.10/32
-set security zones security-zone trust address-book address app-srv 10.1.1.20/32
-set security zones security-zone trust address-book address-set servers address web-srv
-set security zones security-zone trust address-book address-set servers address app-srv
-
-# Global address book (shared across zones)
+set security address-book global address web-srv 10.1.1.10/32
+set security address-book global address app-srv 10.1.1.20/32
+set security address-book global address-set servers address web-srv
+set security address-book global address-set servers address app-srv
 set security address-book global address partner-net 172.16.0.0/16
 ```
+
+Zone-defined address books (`set security zones security-zone <z> address-book ...`) are legacy and cannot be combined with the global address book. For per-zone objects alongside global, use an attached book: `set security address-book <name> attach zone <zone>`. NAT rules can use only global address book objects.
 
 ---
 
@@ -191,6 +191,7 @@ set protocols bgp group ebgp-isp import accept-all
 # Route Policy
 set policy-options policy-statement send-default term 1 from route-filter 0.0.0.0/0 exact
 set policy-options policy-statement send-default term 1 then accept
+set policy-options policy-statement accept-all then accept    # Import everything (tighten with route-filters in production)
 
 # Verification
 show bgp summary
@@ -308,7 +309,7 @@ request chassis cluster failover reset redundancy-group 1
 | Symptom             | Command                                                                                             | Look For                 |
 | ------------------- | --------------------------------------------------------------------------------------------------- | ------------------------ |
 | Traffic dropped     | `show security flow session`                                                                        | Missing sessions         |
-| Policy not matching | `show security match-policies from-zone X to-zone Y source-ip A dest-ip B dest-port P protocol tcp` | Which policy hits        |
+| Policy not matching | `show security match-policies from-zone X to-zone Y source-ip A destination-ip B destination-port P protocol tcp` | Which policy hits        |
 | Interface down      | `show interfaces terse`                                                                             | Status/link              |
 | Routing issue       | `show route <ip>`                                                                                   | Next-hop, protocol       |
 | VPN down            | `show security ike sa`                                                                              | State, proposal mismatch |
@@ -321,8 +322,8 @@ request chassis cluster failover reset redundancy-group 1
 ```
 set security flow traceoptions file flow-debug
 set security flow traceoptions flag basic-datapath
-set security flow traceoptions packet-filter match-1 source-address 10.0.0.5
-set security flow traceoptions packet-filter match-1 destination-address 198.51.100.53
+set security flow traceoptions packet-filter match-1 source-prefix 10.0.0.5/32
+set security flow traceoptions packet-filter match-1 destination-prefix 198.51.100.53/32
 # View: show log flow-debug | last 100
 # REMOVE after troubleshooting: delete security flow traceoptions
 ```

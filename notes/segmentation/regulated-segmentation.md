@@ -1,6 +1,6 @@
 # Segmentation for Regulated Environments
 
-## Banking / PCI Context
+## Financial Services / PCI Context
 
 ### PCI Zones in ACI
 
@@ -12,7 +12,7 @@
 | Out-of-scope                      | Separate Tenant or VRF                      |
 | Shared services                   | EPGs in "common" tenant                     |
 
-**ACI is deny-all by default = PCI Requirement 1 satisfied inherently.**
+**ACI is deny-all between EPGs by default.** This supports PCI DSS Requirement 1 and helps evidence it, but Requirement 1 still needs documented NSC standards, rule justification, reviews and change control.
 
 ### What QSA Auditors Want
 
@@ -31,7 +31,7 @@
 - SWIFT-specific protocols only between EPGs
 - Operator PCs in separate EPG with GUI-port-only contracts
 
-### Banking Segmentation Patterns
+### Financial-Services Segmentation Patterns
 
 - **ATM:** Dedicated EPG per group, contracts only to controller EPG
 - **Trading floor:** EPG per desk, low-latency = may skip FW insertion
@@ -59,13 +59,14 @@
 | **NIS2**        | Network security requirements                          |
 
 ---
+
 ## Network Segmentation Deep Dive
 
 ### Flat vs Segmented
 
 - Flat = all devices in same broadcast domain, unrestricted lateral movement
 - Segmented = isolated zones with controlled paths between them
-- **Banking:** compromised printer must never reach core banking system
+- **Example:** a compromised printer must never reach the core banking system
 
 ### Macro vs Micro Segmentation
 
@@ -76,11 +77,11 @@
 | Controls    | North-South primarily | East-West primarily      |
 | ACI mapping | VRFs, Bridge Domains  | EPGs, Contracts, Filters |
 
-Banks use **both**. Macro defines major zones. Micro enforces within/between app tiers.
+Regulated networks use **both**. Macro defines major zones. Micro enforces within/between app tiers.
 
 ### Zero Trust in ACI
 
-ACI is **inherently Zero Trust**:
+ACI provides several **Zero Trust building blocks** (identity, monitoring and access policy still sit outside the fabric):
 
 - Default deny between all EPGs
 - Least privilege via specific contracts
@@ -92,7 +93,7 @@ ACI is **inherently Zero Trust**:
 
 - **70-80% of DC traffic is East-West** — traditional perimeter FW is blind to it
 - ACI enforces on every E-W flow at fabric level in hardware (leaf TCAM)
-- No performance penalty — this is a key selling point
+- Enforcement runs at line rate in leaf hardware, but TCAM capacity is finite: large contract sets need policy-CAM planning
 
 ---
 
@@ -107,13 +108,13 @@ v4.0 broadened from "firewalls" to **"Network Security Controls"** — includes 
 | 1.2.1 | NSC configuration standards       | Contract/filter standards in APIC |
 | 1.2.4 | Accurate network diagram          | APIC topology view                |
 | 1.2.5 | All permitted services identified | Contracts + Filters               |
-| 1.3.1 | Inbound to CDE restricted         | Consumer contracts on CDE EPGs    |
-| 1.3.2 | Outbound from CDE restricted      | Provider contracts                |
+| 1.3.1 | Inbound to CDE restricted         | Contracts provided by CDE EPGs    |
+| 1.3.2 | Outbound from CDE restricted      | Contracts consumed by CDE EPGs    |
 
 ### CDE Isolation Pattern
 
 ```
-Tenant: Bank-PCI
+Tenant: PCI
   VRF: CDE-VRF          (hard L3 isolation)
   VRF: Corporate-VRF    (separate routing domain)
 
@@ -153,10 +154,10 @@ Without segmentation: **every system in scope**. With proper segmentation: only 
 
 ---
 
-## Banking Architecture — Complete Example
+## Regulated Data Centre — Complete Example
 
 ```
-Tenant: Bank-Production
+Tenant: Production
 
 +-- VRF: CDE-VRF                     (PCI: payment processing)
 |   +-- EPG: Payment-Gateway-Web
@@ -205,18 +206,18 @@ Inter-VRF:
 - ATM --> CoreBanking: ATM host protocol only
 ```
 
-This satisfies PCI, SWIFT CSP, DORA, ISO 27001, and SOX simultaneously.
+One segmentation design can support the network controls of PCI DSS, SWIFT CSP, DORA, ISO 27001 and SOX at the same time. Each framework still needs its own scoping, evidence and assessment.
 
 ### Compliance Framework Overlap
 
 | Control         | PCI DSS    | DORA     | ISO 27001 | NIS2      | SWIFT CSP | SOX  |
 | --------------- | ---------- | -------- | --------- | --------- | --------- | ---- |
 | Segmentation    | Req 1      | Pillar 1 | A.8.22    | Art 21    | CSCF 1.1  | ITGC |
-| Pen testing     | Req 11.4   | Pillar 3 | A.8.8     | Art 21    | CSCF 7.1  | -    |
-| Third-party     | Req 12.8   | Pillar 4 | A.5.19    | Art 21(d) | CSCF 2.8A | ITGC |
-| Incident        | Req 12.10  | Pillar 2 | A.5.24    | Art 23    | Advisory  | -    |
-| Asset inventory | Req 12.5.1 | Art 8    | A.5.9     | Art 21(a) | CSCF 2.1  | ITGC |
-| Access control  | Req 7-8    | Art 9    | A.5.15    | Art 21(i) | CSCF 4.1  | ITGC |
+| Pen testing     | Req 11.4   | Pillar 3 | A.8.8     | Art 21    | CSCF 7.3A | -    |
+| Third-party     | Req 12.8   | Pillar 4 | A.5.19    | Art 21(d) | CSCF 2.8  | ITGC |
+| Incident        | Req 12.10  | Pillar 2 | A.5.24    | Art 23    | CSCF 7.1  | -    |
+| Asset inventory | Req 12.5.1 | Art 8    | A.5.9     | Art 21(a) | -         | ITGC |
+| Access control  | Req 7-8    | Art 9    | A.5.15    | Art 21(i) | CSCF 5.1  | ITGC |
 
 ---
 

@@ -284,22 +284,22 @@ Policies at higher levels cascade down.
 
 ---
 
-## Reference Patterns
+## Common Patterns
 
-**Critical-infrastructure hub-spoke:**
+**Regulated hub-spoke:**
 
-- Hub-spoke with Azure Firewall for critical infrastructure
-- Conditional Access: Location + device compliance + MFA
-- Sentinel for security monitoring across hybrid environment
+- Hub VNet with Azure Firewall; spokes peer to the hub and route egress through it (UDR 0.0.0.0/0)
+- Conditional Access: location + device compliance + MFA
+- Sentinel for monitoring across Azure and on-prem sources
 
-**Hybrid-identity manufacturing estate:**
+**Hybrid identity:**
 
-- Azure AD integration with on-prem AD (hybrid identity)
-- Key Vault for application secret management
-- NSG + ASG for microsegmentation in Azure
+- Microsoft Entra ID synced with on-prem AD (Entra Connect / Cloud Sync)
+- Key Vault for application secrets
+- NSG + ASG for microsegmentation inside a VNet
 
 ---
 
 **See also:** `../iso27001/` (compliance mapping), `../togaf/` (architecture framework)
 
-_Reference for Azure Security consulting and AZ-500 knowledge. Maps to enterprise hybrid deployments._
+_Reference for Azure security design and AZ-500 study. Maps to enterprise hybrid deployments._

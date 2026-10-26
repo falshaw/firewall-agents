@@ -54,7 +54,7 @@ end
 
 **Proxy ARP:** FortiGate answers ARP for VIP external IPs and ippool addresses automatically (`arp-reply enable`, default).
 
-**Hairpin (internal clients to public IP):** add a policy from internal to internal (or DMZ) with the VIP as destination; ASA needed a same-security/hairpin config for this too.
+**Hairpin (internal clients to public IP):** set the VIP `extintf` to `any`, then add one policy from the client interface to the server interface with the VIP as destination. With the VIP bound to `wan1`, the traffic needs a policy from internal to `wan1` plus a policy from `wan1` to the server interface with the VIP as destination. ASA needed a same-security/hairpin config for this too.
 
 ### Example
 
@@ -107,7 +107,7 @@ end
 | -------- | -------------------------------------------- | -------------------------------------------------------------------- |
 | Policy   | `packet-tracer ...`                          | `diagnose firewall iprope lookup <src> <sport> <dst> <dport> <proto> <srcintf>` |
 | Flow     | `capture ... type asp-drop`                  | `diagnose debug flow` (filter, trace start, enable)                  |
-| NAT      | `show xlate`                                 | `diagnose firewall vip list`, `diagnose sys session list` (shows NAT) |
+| NAT      | `show xlate`                                 | `show firewall vip`, `diagnose sys session filter ...` + `diagnose sys session list` (shows NAT) |
 | VPN      | `show crypto ipsec sa`                       | `diagnose vpn tunnel list`, `get vpn ipsec tunnel summary`           |
 
 ## Gotchas Checklist

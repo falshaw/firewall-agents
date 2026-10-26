@@ -1,8 +1,8 @@
 # Cisco Switching & Routing Refresher
 
-### Layer 2 Switching Fundamentals
+## Layer 2 Switching Fundamentals
 
-#### VLANs & Trunking
+### VLANs & Trunking
 
 ```
 ! VLAN creation
@@ -28,7 +28,7 @@ interface Ethernet1/1
 - **Voice VLAN** — separate VLAN for IP phones via CDP/LLDP
 - **VLAN pruning** — only allow needed VLANs on trunks (reduce broadcast domain)
 
-#### Spanning Tree Protocol (STP)
+### Spanning Tree Protocol (STP)
 
 ```
 ! Rapid-PVST+ (default on Nexus, recommended)
@@ -38,7 +38,7 @@ spanning-tree vlan 100 priority 4096    ! Make this switch root for VLAN 100
 ! MST (Multiple Spanning Tree) — maps VLANs to instances
 spanning-tree mode mst
 spanning-tree mst configuration
-  name BANK_MST
+  name CORP_MST
   revision 1
   instance 1 vlan 100-199      ! Payment VLANs
   instance 2 vlan 200-299      ! SWIFT VLANs
@@ -61,7 +61,7 @@ interface Ethernet1/20
 | Per-VLAN | No | No | Yes | Yes | Per-instance |
 | Use case | Legacy | Basic | Cisco | **Recommended** | Large-scale |
 
-#### EtherChannel / Port-Channel
+### EtherChannel / Port-Channel
 
 ```
 ! LACP (preferred over static/PAgP)
@@ -91,7 +91,7 @@ interface port-channel 10
 - **CFS (Cisco Fabric Services)** — syncs config between vPC peers
 - **Type 1 consistency check** — mismatched configs = vPC suspension (STP mode, VLAN, MTU)
 
-#### Port Security & L2 Hardening
+### Port Security & L2 Hardening
 
 ```
 ! Port security — limit MACs per port
@@ -123,17 +123,17 @@ interface Ethernet1/30
   storm-control action shutdown
 ```
 
-### Layer 3 Routing
+## Layer 3 Routing
 
-#### OSPF
+### OSPF
 
 ```
-! Single-area OSPF (small bank network)
+! Single-area OSPF (small network)
 router ospf 1
   router-id 10.0.0.1
   network 10.0.0.0 0.0.255.255 area 0
 
-! Multi-area OSPF (large bank)
+! Multi-area OSPF (large network)
 router ospf 1
   router-id 10.0.0.1
   ! Area 0 = backbone (core switches)
@@ -160,7 +160,7 @@ router ospf 1
 | 5 | External | ASBR | Domain-wide |
 | 7 | NSSA External | ASBR in NSSA | NSSA only |
 
-**OSPF in banking context:**
+**OSPF in a segmented network:**
 
 - Core = Area 0 (backbone)
 - Each security zone = separate area (CDE, SWIFT, Corp, DMZ)
@@ -168,7 +168,7 @@ router ospf 1
 - Route summarization at ABRs to reduce routing table
 - Authentication: `ip ospf authentication message-digest` on ALL links
 
-#### BGP
+### BGP
 
 ```
 ! eBGP to ISP
@@ -182,7 +182,7 @@ router bgp 65001
     neighbor 203.0.113.1 prefix-list ACCEPT-DEFAULT in
     network 198.51.100.0 mask 255.255.255.0
 
-! iBGP with route reflectors (large bank)
+! iBGP with route reflectors (large network)
 router bgp 65001
   neighbor 10.0.0.2 remote-as 65001
   neighbor 10.0.0.2 update-source Loopback0
@@ -203,7 +203,7 @@ route-map TAG-CDE permit 10
 ! 7. eBGP over iBGP
 ```
 
-**BGP in banking:**
+**BGP design notes:**
 
 - eBGP to ISPs (dual-homed for redundancy)
 - iBGP internally with route reflectors (avoid full mesh)
@@ -211,7 +211,7 @@ route-map TAG-CDE permit 10
 - Prefix lists: only accept default route from ISP, advertise only your own public space
 - **BFD (Bidirectional Forwarding Detection)** — sub-second failover
 
-#### VRF-Lite (Virtual Routing and Forwarding)
+### VRF-Lite (Virtual Routing and Forwarding)
 
 ```
 ! VRF for network segmentation (without ACI)
@@ -257,10 +257,10 @@ show ip route vrf CDE
 | Visibility | Per-device show commands | Centralized APIC GUI |
 | Change mgmt | Per-device config | Single policy change |
 
-#### HSRP/VRRP (First-Hop Redundancy)
+### HSRP/VRRP (First-Hop Redundancy)
 
 ```
-! HSRP (Cisco proprietary, most common in banking)
+! HSRP (Cisco proprietary, most common in Cisco campus and DC networks)
 interface Vlan100
   ip address 10.1.0.2 255.255.0.0
   standby 1 ip 10.1.0.1          ! Virtual IP
@@ -276,9 +276,9 @@ interface Vlan100
   vrrp 1 preempt
 ```
 
-### Nexus 9000 Specifics (ACI Hardware)
+## Nexus 9000 Specifics (ACI Hardware)
 
-#### NX-OS vs IOS Key Differences
+### NX-OS vs IOS Key Differences
 
 | Feature       | IOS/IOS-XE                 | NX-OS                                                      |
 | ------------- | -------------------------- | ---------------------------------------------------------- |
@@ -306,7 +306,7 @@ checkpoint BEFORE_CHANGE
 rollback running-config checkpoint BEFORE_CHANGE
 ```
 
-#### VXLAN/EVPN (ACI Underlay)
+### VXLAN/EVPN (and How ACI Differs)
 
 ```
 ! ACI uses VXLAN under the hood for fabric forwarding
@@ -322,7 +322,9 @@ rollback running-config checkpoint BEFORE_CHANGE
 ! - Spine = IS-IS underlay + COOP (Council of Oracles Protocol)
 ! - Leaf = VTEP endpoints
 ! - APIC = policy controller
-! - You configure EPGs/contracts, ACI translates to VXLAN/EVPN
+! - Endpoint info inside the fabric = COOP (leaf -> spine), not EVPN
+! - MP-BGP carries external (L3Out) routes; MP-BGP EVPN only between pods/sites
+! - You configure EPGs/contracts, ACI programs iVXLAN forwarding and zoning rules
 ```
 
 ---

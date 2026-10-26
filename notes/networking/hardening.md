@@ -1,26 +1,29 @@
 # Network Hardening & Zero Trust
 
-### AAA (Authentication, Authorization, Accounting)
+Each config block names its OS. Nexus (NX-OS) and Catalyst (IOS-XE) syntax differ; do not paste one into the other.
 
-#### TACACS+ (Preferred for Network Devices)
+## AAA (Authentication, Authorization, Accounting)
+
+### TACACS+ (Preferred for Network Devices)
 
 ```
+! NX-OS (Nexus 9000)
 ! TACACS+ server configuration
 feature tacacs+
 tacacs-server host 10.0.0.50 key 7 ENCRYPTED
 tacacs-server host 10.0.0.51 key 7 ENCRYPTED
 
-aaa group server tacacs+ BANK_TACACS
+aaa group server tacacs+ CORP_TACACS
   server 10.0.0.50
   server 10.0.0.51
 
 ! AAA configuration
-aaa authentication login default group BANK_TACACS local
-aaa authorization commands default group BANK_TACACS local
-aaa accounting default group BANK_TACACS
+aaa authentication login default group CORP_TACACS     ! local fallback is automatic if servers are unreachable
+aaa authorization commands default group CORP_TACACS local
+aaa accounting default group CORP_TACACS
 
-! Local fallback user (if TACACS down)
-username admin-local password 7 ENCRYPTED role network-admin
+! Local fallback user (if TACACS down) — type 5 = SHA-256 hash (NX-OS has no type 7 user passwords)
+username admin-local password 5 HASHED_PASSWORD role network-admin
 ```
 
 **TACACS+ vs RADIUS:**
@@ -32,62 +35,58 @@ username admin-local password 7 ENCRYPTED role network-admin
 | Best for | **Network devices** | 802.1X/WiFi |
 | Vendor | Cisco ISE / ACS | ISE / FreeRADIUS |
 
-#### SNMPv3 (Only Acceptable Version)
+### SNMPv3 (Only Acceptable Version)
 
 ```
-! SNMPv3 with auth + privacy (authPriv)
-snmp-server user MONITOR_USER BANK_GROUP auth sha AUTH_KEY priv aes-128 PRIV_KEY
+! NX-OS (Nexus 9000)
+! SNMPv3 with auth + privacy (authPriv). NX-OS uses roles, not IOS-style snmp-server groups:
+! network-operator = read-only
+snmp-server user MONITOR_USER network-operator auth sha AUTH_KEY priv aes-128 PRIV_KEY
+snmp-server globalEnforcePriv
 
-snmp-server group BANK_GROUP v3 priv
-  ! Read-only access
-snmp-server community REMOVED   ! Delete any v1/v2c communities
-
-! Restrict SNMP source
-snmp-server host 10.0.0.100 use-vrf management version 3 priv MONITOR_USER
+! Send traps to the NMS only, via the management VRF
+snmp-server host 10.0.0.100 traps version 3 priv MONITOR_USER
+snmp-server host 10.0.0.100 use-vrf management
 
 ! Disable v1/v2c completely
 no snmp-server community public
 no snmp-server community private
 ```
 
-### 802.1X / Network Access Control
+## 802.1X / Network Access Control
 
-#### ISE Integration
+### ISE Integration
 
 ```
-! 802.1X on access ports
-feature dot1x
-dot1x system-auth-control
-
-interface Ethernet1/30
-  switchport mode access
-  switchport access vlan 100
-
-  ! 802.1X configuration
-  dot1x port-control auto
-  dot1x timeout tx-period 10
-  dot1x max-req 2
-
-  ! MAB fallback (for devices that can't do 802.1X)
-  dot1x host-mode multi-auth
-  authentication order dot1x mab
-  authentication priority dot1x mab
-
-  ! Guest VLAN for unauthenticated devices
-  authentication event fail action authorize vlan 999
-  authentication event no-response action authorize vlan 999
-
-  ! RADIUS for 802.1X
-  dot1x authentication-method eap
-
-! RADIUS server for ISE
-radius-server host 10.0.0.60 key 7 ENCRYPTED
+! IOS-XE (Catalyst 9000 access switch), classic Auth Manager syntax
+aaa new-model
+radius server ISE-01
+ address ipv4 10.0.0.60 auth-port 1812 acct-port 1813
+ key RADIUS_KEY
 aaa authentication dot1x default group radius
+aaa authorization network default group radius
+dot1x system-auth-control
+!
+interface GigabitEthernet1/0/30
+ switchport mode access
+ switchport access vlan 100
+ ! 802.1X first, MAB fallback for devices without a supplicant
+ authentication host-mode multi-auth
+ authentication order dot1x mab
+ authentication priority dot1x mab
+ authentication port-control auto
+ mab
+ dot1x pae authenticator
+ dot1x timeout tx-period 10
+ dot1x max-reauth-req 2
 ```
 
-#### TrustSec / SGT (Security Group Tags)
+Unknown or failed devices: let ISE authorise the MAB result (VLAN or dACL). The local restricted VLAN (`authentication event fail action authorize vlan`) supports single-host mode only, so it does not fit a multi-auth port.
+
+### TrustSec / SGT (Security Group Tags)
 
 ```
+! IOS-XE (Catalyst 9000)
 ! SGT assignment via ISE
 ! ISE assigns SGT based on user/device identity after 802.1X
 !
@@ -117,11 +116,12 @@ cts role-based sgt-map 10.1.0.0/16 sgt 10    ! Static SGT for CDE subnet
 - ACI contracts = SGACL policies
 - In hybrid environments, ISE can feed SGT info to APIC
 
-### Control Plane Protection
+## Control Plane Protection
 
-#### CoPP (Control Plane Policing)
+### CoPP (Control Plane Policing)
 
 ```
+! NX-OS (Nexus 9000)
 ! Protect switch CPU from DoS
 ! NX-OS has default CoPP policy — verify and customize
 
@@ -143,28 +143,28 @@ control-plane
   service-policy input COPP_POLICY
 ```
 
-#### Management Plane Hardening
+### Management Plane Hardening
 
 ```
-! SSH only (no telnet)
+! NX-OS (Nexus 9000)
+! SSH only (telnet is off by default; make sure it stays off)
 no feature telnet
 feature ssh
-ssh key rsa 4096
+ssh key rsa 2048                    ! NX-OS 10.x range is 768-2048 bits
 
 ! Restrict management access
 ip access-list MGMT_ACCESS
   permit ip 10.0.0.0/24 any        ! Management subnet only
   deny ip any any log
 
-line vty 0 31
-  access-class MGMT_ACCESS in
-  transport input ssh
-  exec-timeout 15 0                 ! 15-min timeout
+line vty
+  ip access-class MGMT_ACCESS in
+  exec-timeout 15                   ! minutes
   session-limit 5
 
 ! Console security
 line console
-  exec-timeout 5 0
+  exec-timeout 5
 
 ! Banner
 banner motd #
@@ -173,15 +173,18 @@ This system is monitored. Unauthorized access is prohibited.
 #
 
 ! Disable unused services
-no ip http server
-no ip http secure-server      ! Use APIC GUI, not switch HTTP
-no cdp enable                 ! Disable on untrusted ports
-no lldp transmit              ! Disable on untrusted ports
+no feature nxapi              ! NX-API (HTTPS 443) is on by default since 9.2(1); off if unused
+
+interface Ethernet1/48        ! untrusted port
+  no cdp enable
+  no lldp transmit
+  no lldp receive
 ```
 
-#### Logging & Monitoring
+### Logging & Monitoring
 
 ```
+! NX-OS (Nexus 9000)
 ! Syslog to SIEM
 logging server 10.0.0.70 5 use-vrf management    ! Severity 5 = notification
 logging source-interface loopback0
@@ -197,7 +200,7 @@ ntp authenticate
 
 ! NetFlow/IPFIX (traffic visibility)
 feature netflow
-flow record BANK_FLOW
+flow record CORP_FLOW
   match ipv4 source address
   match ipv4 destination address
   match transport source-port
@@ -207,20 +210,20 @@ flow record BANK_FLOW
   collect timestamp sys-uptime first
   collect timestamp sys-uptime last
 
-flow exporter BANK_EXPORT
+flow exporter CORP_EXPORT
   destination 10.0.0.70
   transport udp 2055
   version 9
 
-flow monitor BANK_MONITOR
-  record BANK_FLOW
-  exporter BANK_EXPORT
+flow monitor CORP_MONITOR
+  record CORP_FLOW
+  exporter CORP_EXPORT
 
 interface Ethernet1/1
-  ip flow monitor BANK_MONITOR input
+  ip flow monitor CORP_MONITOR input
 ```
 
-### Zero Trust Mapping to ACI
+## Zero Trust Mapping to ACI
 
 | Zero Trust Principle       | ACI Implementation                                   |
 | -------------------------- | ---------------------------------------------------- |
@@ -232,7 +235,7 @@ interface Ethernet1/1
 | Identity-based access      | ESGs (Endpoint Security Groups) in ACI 5.x+          |
 | Visibility                 | APIC health scores, traffic analytics, span sessions |
 
-### ACI + Firewall Zero Trust Architecture
+## ACI + Firewall Zero Trust Architecture
 
 ```
                     ┌─────────────────────────────────────┐
@@ -268,7 +271,7 @@ Zero Trust flow:
 7. APIC monitors health, logs flows, alerts on anomalies
 ```
 
-### Hardening Checklist for Banking Networks
+## Hardening Checklist for Regulated Networks
 
 **Physical:**
 

@@ -147,7 +147,8 @@ EPGs in a "Preferred Group" can talk freely without contracts. Everything NOT in
 | ------------- | ----------- | ----------------------------------------- |
 | Underlay      | IS-IS       | Routing between Spine/Leaf (infra)        |
 | Overlay       | VXLAN       | Encapsulates tenant traffic across fabric |
-| Control plane | MP-BGP EVPN | Distributes endpoint info (MAC/IP)        |
+| Control plane | COOP        | Endpoint info (MAC/IP) from leafs to the spine database |
+| Control plane | MP-BGP      | External (L3Out) routes inside the fabric; EVPN between pods/sites |
 
 **Why no STP?** Spine-Leaf is inherently loop-free. Every Leaf connects to every Spine. No blocked ports. No convergence delays. ECMP load balancing across all Spine links.
 
@@ -177,7 +178,7 @@ PBR tells ACI: "For traffic matching this contract, redirect it to this firewall
 
 | Deployment | Description                                           | When to Use                        |
 | ---------- | ----------------------------------------------------- | ---------------------------------- |
-| One-Arm    | Firewall on single interface, traffic in/out same leg | Simple insertion, transparent mode |
+| One-Arm    | Firewall on single interface, traffic in/out same leg | Simple insertion; routed (go-to) mode, as L3 PBR requires |
 | Two-Arm    | Firewall with inside + outside interfaces             | Routed mode, NAT scenarios         |
 | Multi-Node | Chain: Firewall → Load Balancer → Firewall            | Complex service chains             |
 
@@ -224,12 +225,13 @@ Intra-EPG Isolation:
 
 | PCI Req | What                          | ACI Implementation                          |
 | ------- | ----------------------------- | ------------------------------------------- |
-| 1.2     | Restrict traffic to CDE       | Contracts = whitelist only                  |
-| 1.3     | No direct Internet to CDE     | L3Out contracts, no direct path             |
-| 1.4     | Personal firewall on portable | Not ACI scope (endpoint)                    |
-| 2.1     | No vendor defaults            | APIC password changed, NTP configured       |
-| 10.1    | Audit trails                  | Contract logging enabled                    |
-| 11.3    | Pen test segmentation         | Validate contracts block unauthorized flows |
+| 1.3.1-1.3.2 | Restrict traffic to/from CDE | Contracts = allow-list only             |
+| 1.4.1-1.4.2 | NSCs between trusted and untrusted networks | L3Out contracts, no direct path |
+| 1.5.1   | Controls on devices connecting to untrusted networks and CDE | Not ACI scope (endpoint) |
+| 2.2.2   | Vendor default accounts managed | APIC default admin password changed       |
+| 10.2.1  | Audit logs enabled            | Contract logging enabled                    |
+| 10.6.1  | Time synchronisation          | NTP configured on APIC and fabric           |
+| 11.4.5  | Segmentation penetration test | Validate contracts block unauthorized flows |
 
 **Why it helps:** Classic designs use VRFs and physical firewalls. ACI adds granular microsegmentation inside the CDE, not just macro zones. Contracts are the allow-list, and default-deny can be evidenced to the QSA via the zoning rules on each leaf.
 
@@ -406,19 +408,6 @@ ESGs are the evolution of EPGs for microsegmentation. Key difference: ESGs decou
 | Subnet not marked "advertised externally" | External can't reach subnet      | Enable on BD subnet settings     |
 | L3Out missing route-map                   | No routes exported/imported      | Configure route-map on L3Out     |
 | Firmware mismatch                         | APIC and switches out of sync    | Check compatibility matrix       |
-
----
-
-## ACI Versions (For Context)
-
-| Version | Era       | Key Feature                       |
-| ------- | --------- | --------------------------------- |
-| 1.x     | 2014-2016 | Initial release                   |
-| 2.x     | 2016-2018 | Microsegmentation, Multi-Pod      |
-| 3.x     | 2018-2020 | Multi-Site, enhanced analytics    |
-| 4.x     | 2020-2022 | Cloud ACI, Nexus Dashboard        |
-| 5.x     | 2022-2024 | ESGs, enhanced automation         |
-| 6.x     | 2024+     | Nexus Dashboard Fabric Controller |
 
 ---
 

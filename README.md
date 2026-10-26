@@ -1,6 +1,6 @@
 # firewall-agents
 
-Vendor expert personas, migration playbooks and study notes for network and firewall engineers who use [Claude Code](https://docs.anthropic.com/en/docs/claude-code).
+Vendor expert personas, migration playbooks and study notes for network and firewall engineers who use [Claude Code](https://code.claude.com/docs).
 
 - **Agents** — Palo Alto, Cisco, Fortinet, Juniper SRX, F5 BIG-IP and a multi-vendor architect, packaged as Claude Code subagents. You can also paste them into any LLM as plain prompts.
 - **Playbooks** — how to move from one vendor to another: rule, NAT and object translation, cutover, rollback and validation.
@@ -75,7 +75,7 @@ Claude Code loads subagents from `.claude/agents/` (one project) or `~/.claude/a
 **Every project (user level):**
 
 ```bash
-git clone https://github.com/<your-account>/firewall-agents.git
+git clone https://github.com/falshaw/firewall-agents.git
 mkdir -p ~/.claude/agents ~/.claude/commands
 cp firewall-agents/agents/*.md ~/.claude/agents/
 cp firewall-agents/commands/fw-agent.md ~/.claude/commands/   # optional
@@ -89,7 +89,13 @@ cp /path/to/firewall-agents/agents/*.md .claude/agents/
 cp /path/to/firewall-agents/commands/fw-agent.md .claude/commands/   # optional
 ```
 
-Windows PowerShell: `Copy-Item firewall-agents\agents\*.md $HOME\.claude\agents\`
+**Windows PowerShell (user level):**
+
+```powershell
+New-Item -ItemType Directory -Force "$HOME\.claude\agents", "$HOME\.claude\commands" | Out-Null
+Copy-Item firewall-agents\agents\*.md "$HOME\.claude\agents\"
+Copy-Item firewall-agents\commands\fw-agent.md "$HOME\.claude\commands\"   # optional
+```
 
 Restart Claude Code (or run `/agents`) to confirm they are listed.
 
