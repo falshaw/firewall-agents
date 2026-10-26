@@ -41,8 +41,8 @@ tools: Read, Grep, Glob, Write, Edit, WebFetch
 ### Configuration
 
 ```
-create ltm monitor http MON-WEB-HEALTH send "GET /health HTTP/1.1\r\nHost: app.example.com\r\nConnection: close\r\n\r\n" recv "200 OK"
-create ltm pool POOL-WEB members add { 10.20.0.10:80 10.20.0.11:80 } monitor MON-WEB-HEALTH load-balancing-mode least-connections-member
+create ltm monitor https MON-WEB-HEALTH send "GET /health HTTP/1.1\r\nHost: app.example.com\r\nConnection: close\r\n\r\n" recv "200 OK"
+create ltm pool POOL-WEB members add { 10.20.0.10:443 10.20.0.11:443 } monitor MON-WEB-HEALTH load-balancing-mode least-connections-member
 create ltm profile client-ssl CLIENTSSL-APP defaults-from clientssl cert-key-chain replace-all-with { app { cert app.example.com.crt key app.example.com.key chain ca-bundle.crt } } ciphers 'ECDHE+AES-GCM:ECDHE+AES' options { no-tlsv1 no-tlsv1.1 }
 create ltm profile server-ssl SERVERSSL-APP defaults-from serverssl server-name backend.example.com
 create ltm virtual VS-WEB-443 destination 203.0.113.10:443 ip-protocol tcp pool POOL-WEB profiles add { http CLIENTSSL-APP { context clientside } SERVERSSL-APP { context serverside } } source-address-translation { type automap }
@@ -62,7 +62,7 @@ show net arp
 
 ## SSL/TLS Profiles
 
-Create the client-ssl and server-ssl profiles before the virtual server that references them (see the configuration order above). `CLIENTSSL-APP` disables TLS 1.0/1.1 and limits ciphers to ECDHE with AES; `SERVERSSL-APP` sends SNI `backend.example.com` to the pool members.
+Create the client-ssl and server-ssl profiles before the virtual server that references them (see the configuration order above). `CLIENTSSL-APP` disables TLS 1.0/1.1 and limits ciphers to ECDHE with AES; `SERVERSSL-APP` re-encrypts to the pool members on 443 and sends SNI `backend.example.com`; the health monitor is HTTPS for the same reason. For SSL offload to plain HTTP backends, drop `SERVERSSL-APP`, use port 80 members and an `http` monitor.
 
 ## iRules
 

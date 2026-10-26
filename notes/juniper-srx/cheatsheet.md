@@ -185,12 +185,16 @@ set routing-options autonomous-system 65001
 set protocols bgp group ebgp-isp type external
 set protocols bgp group ebgp-isp peer-as 65000
 set protocols bgp group ebgp-isp neighbor 203.0.113.1
-set protocols bgp group ebgp-isp export send-default
+set protocols bgp group ebgp-isp export ADVERTISE-OWN
 set protocols bgp group ebgp-isp import accept-all
 
 # Route Policy
-set policy-options policy-statement send-default term 1 from route-filter 0.0.0.0/0 exact
-set policy-options policy-statement send-default term 1 then accept
+# Advertise only your own public prefix to the ISP (never a default route or learned routes)
+set routing-options static route 198.51.100.0/24 discard
+set policy-options policy-statement ADVERTISE-OWN term own from protocol static
+set policy-options policy-statement ADVERTISE-OWN term own from route-filter 198.51.100.0/24 exact
+set policy-options policy-statement ADVERTISE-OWN term own then accept
+set policy-options policy-statement ADVERTISE-OWN term rest then reject
 set policy-options policy-statement accept-all then accept    # Import everything (tighten with route-filters in production)
 
 # Verification

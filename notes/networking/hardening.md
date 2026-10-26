@@ -302,7 +302,7 @@ Zero Trust flow:
 
 **Management:**
 
-- [ ] SSH only (RSA 4096 or Ed25519)
+- [ ] SSH only, RSA 2048 or longer (4096 where the platform allows it; NX-OS stops at 2048) or Ed25519 where supported
 - [ ] TACACS+ for all admin access
 - [ ] SNMPv3 authPriv only
 - [ ] NTP authenticated
